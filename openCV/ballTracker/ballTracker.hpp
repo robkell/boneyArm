@@ -22,11 +22,12 @@ class balltracker {
 		cv::Size S;
 		std::string window_name;
 		char filename[200];
+		//std::vector<int> ballPosition;
 	public:
 		//cv::VideoCapture& capture;
 		balltracker(cv::VideoCapture& capture);
 		~balltracker();
-		int processFrame(cv::VideoCapture& capture);
+		std::vector<int> processFrame(cv::VideoCapture& capture, bool showImage);
 		
 };
 

@@ -4,3 +4,6 @@ example: ballTracker.o example.cpp
 ballTracker.o: ballTracker.cpp ballTracker.hpp
 	g++ -c ballTracker.cpp ballTracker.hpp -lopencv_highgui -lopencv_core -lopencv_imgproc
  
+clean: 
+	rm -rf *.o
+

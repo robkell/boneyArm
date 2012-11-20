@@ -14,7 +14,7 @@ namespace balltracker {
 balltracker::balltracker(cv::VideoCapture& capture){
 	std::cout << "balltracker constructor" << std::endl;
         
-	window_name = "Tennis Ball Tracker";
+	window_name = "Ball Tracker";
         height = (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT);
         width = (int) capture.get(CV_CAP_PROP_FRAME_WIDTH);
 

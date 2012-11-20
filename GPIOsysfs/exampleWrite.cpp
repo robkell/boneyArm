@@ -1,5 +1,9 @@
 #include "gpio.h"
 #include <iostream>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+ 
 
 using namespace std;
 
@@ -27,20 +31,23 @@ enum pin
                 P9_46
         };
 
-pin testPin = P8_46;
+pin testPin = P8_25;
 
 gpio::gpio dir1(testPin);
 
-int main()
+int main(int argc, char *argv[])
 {
+	int x = atoi(argv[1]);
+
 	cout << "this is a test\n";
 	dir1.direction("out");		//CONFIG AS OUTPUT
-	for (int i=0; i<5; i++)
+/*	for (int i=0; i<5; i++)
 	{
 		dir1.write(1);		//SET PIN HIGH
-		usleep(1000000);
+		usleep(5000000);
 		dir1.write(0);		//SET PIN LOW
 		usleep(1000000);
 	}
+*/	dir1.write(x);
 	return 0;
 }

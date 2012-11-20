@@ -3,6 +3,9 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <stdlib.h>
+#include <stdio.h>
+
 
 //using namespace std;
 
@@ -64,7 +67,7 @@ gpio::gpio( int i )
 	std::cout << "called gpio constructor" << std::endl;
 	gpio::id = i;
 	gpio::num = (Pin_Bank[i]*32)+Pin_Id[i];
-	
+	std::cout << "Gpio number" << num <<std::endl; 
 	std::stringstream sysfsfile_direction;
 	std::stringstream sysfsfile_edge;
 	std::stringstream sysfsfile_value;
@@ -119,10 +122,11 @@ int gpio::write(int d)
 int gpio::read()
 {
 		int d;
-		sysfsfd_value >> d;
+		sysfsfd_value.seekg(0, std::ios::beg);
+		sysfsfd_value>>d;		
 		std::cout << "PWM "<< id << ", value is " << d << std::endl;
 		gpio::Value = d;
-		return 1;
+		return d;
 }
 
 

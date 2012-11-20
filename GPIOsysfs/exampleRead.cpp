@@ -28,7 +28,7 @@ enum pin
                 P9_46
         };
 
-pin testPin = P8_46;
+pin testPin = P8_9;
 
 gpio::gpio dir1(testPin);
 
@@ -36,11 +36,13 @@ int main()
 {
 	cout << "this is a test\n";
 	dir1.direction("in");		//CONFIG AS INPUT
-	dir1.edge("rising");		//CONFIG INTERUPTS ON RISING EDGE
+	dir1.edge("both");		//CONFIG INTERUPTS ON BOTH EDGES
 	while(1)
 	{
 		int pinVal = dir1.read();
 		cout << pinVal << endl;
+		usleep(1000000);
+
 	}
 
 	return 0;

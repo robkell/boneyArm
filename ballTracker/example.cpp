@@ -26,11 +26,16 @@ int main(int ac, char** av)
 	balltracker::balltracker example(capture);
 	int i;
 	vector<int> pos(2,0); 
-	for(i=0; i<100; i++)
+	for(;;)
 	{
 		pos = example.processFrame(capture, true); //PASS TRUE/FALSE AS 2ND ARG TO DISPLAY IMG IN WINDOW
 		//usleep(500000);
+		if(pos[0]==-1)
+		{
+			break;
+		}
 		cout<<"x: "<<pos[0]<<", y: "<<pos[1]<<endl;
+		
 	}
 	return 0;
 }

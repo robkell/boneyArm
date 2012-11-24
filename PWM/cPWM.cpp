@@ -1,4 +1,4 @@
-#include "cPWM.h"
+#include "cPWM.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>

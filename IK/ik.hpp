@@ -13,10 +13,10 @@ namespace ik {
 			int yCoord;
 			int zCoord;
 
-			int LRAngle;
-			int SAngle;
-			int EAngle;
-			int WAngle;
+			float thetaLR;
+			float thetaS;
+			float thetaE;
+			float thetaW;
 
 			int LRCount_current;
 			int SCount_current;

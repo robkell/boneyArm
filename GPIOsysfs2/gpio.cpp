@@ -18,50 +18,49 @@
 #include <sys/epoll.h>
 using namespace std;
 
-/*string myItoA(int value, int base)
-{
-	string buf;
-	buf.reserve(3);
-	int quotient = value;
-	do {
-		buf += "0123456789abcdef"[abs(quotient % base)];
-		quotient /= base;
-	} while (quotient);
-	if (value<0) buf+='-';
-
-	reverse(buf.begin(), buf.end());
-	return buf;
-}
-*/
-	char* itoa(int value, char* result, int base) {
-		// check that the base if valid
-		if (base < 2 || base > 36) { *result = '\0'; return result; }
-	
-		char* ptr = result, *ptr1 = result, tmp_char;
-		int tmp_value;
-	
-		do {
-			tmp_value = value;
-			value /= base;
-			*ptr++ = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz" [35 + (tmp_value - value * base)];
-		} while ( value );
-	
-		// Apply negative sign
-		if (tmp_value < 0) *ptr++ = '-';
-		*ptr-- = '\0';
-		while(ptr1 < ptr) {
-			tmp_char = *ptr;
-			*ptr--= *ptr1;
-			*ptr1++ = tmp_char;
-		}
-		return result;
-	}
 
 int fsWrite(int fd, int i)
 {
-	char* buf;
-	buf = itoa(i, buf, 10);
-	return write(fd, buf, strlen(buf) );//export gpio
+	static char num[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+	cout << "writing i: " << i << endl;
+	char str[64];
+	char* wstr[sizeof(str)];
+	char* out = &str[0];
+	int j;
+/*	for (j=0; i<sizeof(str); j++) 
+	{
+		wstr[j] = &str[j];
+	}
+*/	int sign, base=10;
+	
+	div_t res;
+	int k=0;
+	int quotient = i;
+	do {
+		cout <<"loop \n";
+		const int tmp = quotient / base;
+		*out = "0123456789abcdef"[ quotient - (tmp*base) ];
+		++out;
+		quotient = tmp;		
+		*wstr[k] = num[res.rem];
+		k++;
+	}while(quotient);
+	*wstr='\0';
+	int l;
+	char temp[64];
+	//strcpy(temp,str);
+	for (l=0;l<sizeof(str);l++)
+	{	
+		temp[l]=str[l];
+	}	
+	for (l=0;l<k;l++)
+	{	
+		str[l]=temp[k-l];
+	}	
+	cout << "result: " << str << endl;
+	return 1;
+
+	//return write(fd, buf, strlen(*buf) );//export gpio
 }
 int fsRead(int fd, const char* buf)
 {
@@ -140,11 +139,11 @@ gpio::gpio( int i )
 	sysfsfile_unexport << SYSFS_GPIO_PREFIX << "/" << SYSFS_GPIO_UNEXPORT;
 
 	std::cout << "new gpio with id: " << i << ", number: " << num << std::endl;
-
+	
 	sysfsfd_export = open(sysfsfile_export.str().c_str(), O_RDWR | O_NONBLOCK);
-	sysfsfd_unexport = open(sysfsfile_unexport.str().c_str(), O_RDWR | O_NONBLOCK);
-	//char buf;
-	//std::itoa(i, buf, 10);
+	std::cout << "First Open" << std::endl;
+	sysfsfd_unexport = open(sysfsfile_unexport.str().c_str(), O_RDWR | 
+O_NONBLOCK);
 	fsWrite(sysfsfd_export, i);//export gpio
 
 	sysfsfd_direction = open(sysfsfile_direction.str().c_str(),  O_RDWR | O_NONBLOCK);

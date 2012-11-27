@@ -19,29 +19,22 @@
 using namespace std;
 
 
-int fsWrite(int fd, int i)
+int intWrite(int fd, int i)
 {
-	static char num[] = "0123456789abcdefghijklmnopqrstuvwxyz";
-	cout << "writing i: " << i << endl;
-	char str[64];
+	//cout << "writing i: " << i << endl;
+	char str[4];
 	char* wstr[sizeof(str)];
-	char* out = &str[0];
-	int j;
+	int j, base=10, k=0, quotient=i;
+
 	for (j=0; j<sizeof(str); j++) 
 	{
-		cout << "pointing to char " <<j <<endl;
 		wstr[j] = &str[j];
 	}
-	int sign, base=10;
-	div_t res;
-	int k=0;
-	int quotient = i;
 	do {
-		cout <<"loop \n";
 		const int tmp = quotient / base;
 		*wstr[k] =  "0123456789abcdef"[ quotient - (tmp*base) ];
-		cout << "added char: " << *wstr[k] << endl;
-		cout << "quotient = " << tmp << endl;
+		//cout << "added char: " << *wstr[k] << endl;
+		//cout << "quotient = " << tmp << endl;
 		quotient = tmp;
 		k=k+1;
 	}while(quotient>0);
@@ -51,14 +44,12 @@ int fsWrite(int fd, int i)
 		buf[l]=str[k-(l+1)];
 	}
 	buf[k]='\0';
-	cout << "result: " << buf << endl;
-	//return 1;
+	int written = write(fd, buf, strlen(buf) );
+	if(written<0){
+	 	printf("Cannot export: %s\n", strerror( errno ));
+	}
 
-	return write(fd, str, sizeof(str) );//export gpio
-}
-int fsRead(int fd, const char* buf)
-{
-//	read(fd, buf, strlen(buf) );//export gpio
+	return written;
 }
 
 namespace gpio {
@@ -124,60 +115,90 @@ gpio::gpio( int i )
 	std::stringstream sysfsfile_edge;
 	std::stringstream sysfsfile_value;
 	std::stringstream sysfsfile_export;
-	std::stringstream sysfsfile_unexport;
 
 	sysfsfile_direction << SYSFS_GPIO_PREFIX << "gpio" << num << "/" << SYSFS_GPIO_DIRECTION;
 	sysfsfile_edge << SYSFS_GPIO_PREFIX << "gpio" << num << "/" << SYSFS_GPIO_EDGE;
 	sysfsfile_value << SYSFS_GPIO_PREFIX << "gpio" << num << "/" << SYSFS_GPIO_VALUE;
-	sysfsfile_export << SYSFS_GPIO_PREFIX << "/" << SYSFS_GPIO_EXPORT;
-	sysfsfile_unexport << SYSFS_GPIO_PREFIX << "/" << SYSFS_GPIO_UNEXPORT;
+	sysfsfile_export << SYSFS_GPIO_PREFIX << SYSFS_GPIO_EXPORT;
 
 	std::cout << "new gpio with id: " << i << ", number: " << num << std::endl;
+	//std::cout << "export fd: " << sysfsfile_export.str().c_str() << endl;
 	
-	sysfsfd_export = open(sysfsfile_export.str().c_str(), O_RDWR | O_NONBLOCK);
-	std::cout << "First Open" << std::endl;
-	sysfsfd_unexport = open(sysfsfile_unexport.str().c_str(), O_RDWR | 
-O_NONBLOCK);
-	fsWrite(sysfsfd_export, i);//export gpio
+	sysfsfd_export = open(sysfsfile_export.str().c_str(), O_WRONLY);
 
-	sysfsfd_direction = open(sysfsfile_direction.str().c_str(),  O_RDWR | O_NONBLOCK);
-	sysfsfd_edge = open(sysfsfile_edge.str().c_str(),  O_RDWR | O_NONBLOCK);
-	sysfsfd_value = open(sysfsfile_value.str().c_str(),  O_RDWR | O_NONBLOCK);
+	sysfsfd_export = open(sysfsfile_export.str().c_str(), O_WRONLY);
+	if(sysfsfd_export<0){
+	 	printf("Cannot open GPIO to export it: %s\n", strerror( errno ));
+	}
+	intWrite(sysfsfd_export, gpio::num);//export gpio
+	close(sysfsfd_export);
+
+	//std::cout << "direction fd: " << sysfsfile_direction.str().c_str() << endl;
+	sysfsfd_direction = open(sysfsfile_direction.str().c_str(),  O_WRONLY);
+	if(sysfsfd_direction<0){
+	 	printf("Cannot open GPIO direction: %s\n", strerror( errno ));
+	}
+
+	sysfsfd_edge = open(sysfsfile_edge.str().c_str(),  O_WRONLY);
+	if(sysfsfd_edge<0){
+	 	printf("Cannot open GPIO edge: %s\n", strerror( errno ));
+	}
+
+	sysfsfd_value = open(sysfsfile_value.str().c_str(),  O_WRONLY);
+	if(sysfsfd_value<0){
+	 	printf("Cannot open GPIO value: %s\n", strerror( errno ));
+	}
 
 }
 
 int gpio::direction(std::string d)
 {
-		std::cout << "gpio "<< id << "direction set to " << d << std::endl;
+		std::cout << "gpio"<< gpio::num << " direction set to " << d << std::endl;
 		gpio::Direction = d;
-		return 1;
+		int written = write(sysfsfd_direction, d.c_str(), strlen(d.c_str()) );
+		if(written<0){
+		 	printf("Cannot set direction: %s\n", strerror( errno ));
+			return -1;
+		}else{
+			return 1;
+		}
 }
 
 int gpio::edge(std::string d)
 {
-		std::cout << "gpio "<< id << "edge " << d << std::endl;
+		std::cout << "gpio"<< gpio::num << " edge " << d << std::endl;
 		gpio::Edge = d;
-//		sysfsfd_edge << d << std::endl;
-		return 1;
+		int written = write(sysfsfd_edge, d.c_str(), strlen(d.c_str()) );
+		if(written<0){
+		 	printf("Cannot set edge: %s\n", strerror( errno ));
+			return -1;
+		}else{
+			return 1;
+		}
 }
 
-int gpio::write(int d)
+int gpio::set(std::string d)
 {
-		std::cout << "PWM "<< id << ", set to " << d << std::endl;
+		std::cout << "gpio"<< gpio::num << ", set to " << d << std::endl;
 		gpio::Value = d;
-		//write(sysfsfd_value, d, 1 );
-		return 1;
+		int written = write(sysfsfd_value, d.c_str(), strlen(d.c_str()) );
+		if(written<0){
+		 	printf("Cannot set value: %s\n", strerror( errno ));
+			return -1;
+		}else{
+			return 1;
+		}
 }
 
-int gpio::read()
+int gpio::get()
 {
 		int d, m = 0;
                 char buf[64];
-/*                m = lseek(sysfsfd_value, 0, SEEK_SET);
-                m = read(file, &buf, 63);
+                m = lseek(sysfsfd_value, 0, SEEK_SET);
+                m = read(sysfsfd_value, &buf, 63);
 		d = atoi(buf);
-*/		std::cout << "PWM "<< id << ", value is " << d << std::endl;
-		return 1;
+		std::cout << "gpio"<< gpio::num << ", value is " << d << std::endl;
+		return d;
 }
 
 
@@ -187,8 +208,19 @@ int gpio::read()
  */
 gpio::~gpio()
 {
-	std::cout << "gpio "<< id << " unexported" << std::endl;
-	//sysfsfd_unexport << id << std::endl;
+	std::stringstream sysfsfile_unexport;
+	sysfsfile_unexport << SYSFS_GPIO_PREFIX << SYSFS_GPIO_UNEXPORT;
+
+	std::cout << "gpio"<< gpio::num << " unexported" << std::endl;
+	close(sysfsfd_direction);
+	close(sysfsfd_edge);
+	close(sysfsfd_value);
+	sysfsfd_unexport = open(sysfsfile_unexport.str().c_str(), O_WRONLY);
+	if(sysfsfd_unexport<0){
+	 	printf("Cannot open GPIO to unexport it: %s\n", strerror( errno ));
+	}
+	intWrite(sysfsfd_unexport, gpio::num);//unexport gpio
+	close(sysfsfd_unexport);
 	std::cout << "called gpio destructor of" << id << std::endl;
 }
 

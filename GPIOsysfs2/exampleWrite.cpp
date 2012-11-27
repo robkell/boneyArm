@@ -27,19 +27,25 @@ enum pin
                 P9_46
         };
 
-pin testPin = P8_20;
+pin testPin = P8_24;
 
 gpio::gpio dir1(testPin);
 
 int main()
 {
 	cout << "this is a test\n";
-	//dir1.direction("out");		//CONFIG AS OUTPUT
+	dir1.direction("in");		
+	dir1.edge("rising");		
+	int read = dir1.get();	
+	int fd = dir1.retfd();
+	cout << "value fd = " << fd << endl;
+	
+
 	for (int i=0; i<5; i++)
 	{
-		//dir1.write(1);		//SET PIN HIGH
+		//dir1.set(1);		//SET PIN HIGH
 		//usleep(1000000);
-		//dir1.write(0);		//SET PIN LOW
+		//dir1.set(0);		//SET PIN LOW
 		//usleep(1000000);
 	}
 	return 0;

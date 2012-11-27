@@ -12,7 +12,7 @@ private:
 	unsigned short id, i;
 	std::string Direction;
 	std::string Edge;
-	int Value;
+	std::string Value;
 	int num;
 
 	#define SYSFS_GPIO_PREFIX "/sys/class/gpio/"
@@ -21,7 +21,9 @@ private:
 	#define SYSFS_GPIO_VALUE "value"
 	#define SYSFS_GPIO_EXPORT "export"
 	#define SYSFS_GPIO_UNEXPORT "unexport"
-	
+	#define HIGH	"1"
+	#define LOW	"0"
+
 	int sysfsfd_direction;
 	int sysfsfd_edge;
 	int sysfsfd_value;
@@ -37,8 +39,9 @@ public:
 
 	int direction( std::string d);
 	int edge( std::string d);
-	int write(int d);
-	int read();
+	int set(std::string d);
+	int get();
+	int retfd(){return sysfsfd_value;};
 };
 
 } /* namespace gpio */

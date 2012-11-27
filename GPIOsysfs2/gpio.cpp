@@ -27,40 +27,34 @@ int fsWrite(int fd, int i)
 	char* wstr[sizeof(str)];
 	char* out = &str[0];
 	int j;
-/*	for (j=0; i<sizeof(str); j++) 
+	for (j=0; j<sizeof(str); j++) 
 	{
+		cout << "pointing to char " <<j <<endl;
 		wstr[j] = &str[j];
 	}
-*/	int sign, base=10;
-	
+	int sign, base=10;
 	div_t res;
 	int k=0;
 	int quotient = i;
 	do {
 		cout <<"loop \n";
 		const int tmp = quotient / base;
-		*out = "0123456789abcdef"[ quotient - (tmp*base) ];
-		++out;
-		quotient = tmp;		
-		*wstr[k] = num[res.rem];
-		k++;
-	}while(quotient);
-	*wstr='\0';
-	int l;
-	char temp[64];
-	//strcpy(temp,str);
-	for (l=0;l<sizeof(str);l++)
-	{	
-		temp[l]=str[l];
-	}	
-	for (l=0;l<k;l++)
-	{	
-		str[l]=temp[k-l];
-	}	
-	cout << "result: " << str << endl;
-	return 1;
+		*wstr[k] =  "0123456789abcdef"[ quotient - (tmp*base) ];
+		cout << "added char: " << *wstr[k] << endl;
+		cout << "quotient = " << tmp << endl;
+		quotient = tmp;
+		k=k+1;
+	}while(quotient>0);
+	*wstr[k]='\0';
+	char buf[sizeof(str)];
+	for(int l=0; l<sizeof(str); l++){
+		buf[l]=str[k-(l+1)];
+	}
+	buf[k]='\0';
+	cout << "result: " << buf << endl;
+	//return 1;
 
-	//return write(fd, buf, strlen(*buf) );//export gpio
+	return write(fd, str, sizeof(str) );//export gpio
 }
 int fsRead(int fd, const char* buf)
 {

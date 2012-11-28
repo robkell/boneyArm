@@ -10,9 +10,6 @@ exampleWrite: gpio.o exampleWrite.cpp
 gpio.o: gpio.cpp gpio.h
 	g++ -c gpio.cpp gpio.h -O2 -Wall 
 
-time_event:
-	gcc time_event.c -I time_event.c timerutil.h -o time_event
- 
 clean: 
 	rm -rf *.o
 

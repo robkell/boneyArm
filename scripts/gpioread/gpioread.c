@@ -33,7 +33,7 @@
 	#define EV_ET           0x20
 
 	int posedge;
-	int file;
+	int file, export;
 	long time;
         TimerUtilObj timerObj;
 	int count=0;
@@ -74,8 +74,9 @@
 	       //printf("starttime = %ld\n", time);
 
 		//filename = "/sys/class/gpio/gpio34/value"
-		file = open( "/sys/class/gpio/gpio44/value" , O_RDWR | 
-O_NONBLOCK);
+		export = open( "/sys/class/gpio/export" , O_RDWR | O_NONBLOCK);
+		printf("opening export returned: %i\n", export);
+		file = open( "/sys/class/gpio/gpio69/value" , O_RDWR | O_NONBLOCK);
 
 	        // Create epoll event
 	        int epfd = epoll_create(1);

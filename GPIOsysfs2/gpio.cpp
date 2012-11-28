@@ -221,7 +221,7 @@ gpio::~gpio()
 	}
 	intWrite(sysfsfd_unexport, gpio::num);//unexport gpio
 	close(sysfsfd_unexport);
-	std::cout << "called gpio destructor of" << id << std::endl;
+	std::cout << "called gpio"<<gpio::num<<" destructor"<< std::endl;
 }
 
 } /* namespace cPWM */

@@ -2,7 +2,7 @@
 all: exampleRead exampleWrite gpio.o
 
 exampleRead: gpio.o exampleRead.cpp
-	g++ gpio.o timerutil.h exampleRead.cpp -O2 -o exampleRead
+	g++ gpio.o exampleRead.cpp -I. -O2 -levent -o exampleRead
 
 exampleWrite: gpio.o exampleWrite.cpp
 	g++ gpio.o exampleWrite.cpp -O2 -o exampleWrite

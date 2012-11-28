@@ -4,7 +4,6 @@
 #include <sys/stat.h>
 #include <sys/queue.h>
 #include <unistd.h>
-#include <sys/time.h>
 #include <signal.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -54,67 +53,64 @@ enum pin
 
 pin testPin = P8_46;
 gpio::gpio dir1(testPin);
+long unsigned timeG;
 
-int posedge, file, export, loopCount, count=0;
-long time;
+int posedge, file, exportfd, loopCount, count=0;
 TimerUtilObj timerObj;
 
 static void my_cb(int fd, short event, void *arg);
 
 int main()
 {
+	long unsigned time;
 	cout << "this is a test\n";
 	dir1.direction("in");		//CONFIG AS INPUT
 	dir1.edge("rising");		//CONFIG INTERUPTS ON RISING EDGE
 	
 	TimerUtil_reset(&timerObj);
 	TimerUtil_delta(&timerObj, &time);
-        
+	timeG=time;
+        printf("starttime = %ld\n", timeG);
 	file = dir1.retfd();
 	
-// Create epoll event
-/*                int epfd = epoll_create(1);
-                printf("epoll_create(1) returned %d: %s\n", epfd, strerror(errno));
-                struct epoll_event ev;
-                ev.events = EPOLLPRI;
-                ev.data.fd = file;
-                int n = epoll_ctl(epfd, EPOLL_CTL_ADD, file, &ev);
-
-
-
-                // Read initial state
-                int m = 0;
-                char buf[64];
-                m = lseek(file, 0, SEEK_SET);
-                printf("seek(%d) %d bytes: %s\n", file, m, strerror(errno));
-                m = read(file, &buf, 63);
-                buf[m] = 0;
-                printf("read(%d) %d bytes (%s): %s\n", file, m, buf, strerror(errno));
-*/
-                /* Initalize the event library */
-//                struct event_base* base = event_base_new();
-
-                /*create the event*/
-//                struct event *ev_file_read = event_new(base, epfd, EV_READ|EV_PERSIST, my_cb,$
-
-
-
- /* Initalize one event */
-/*                event_set(ev_file_read, epfd, EV_READ|EV_PERSIST, my_cb, &ev_file_read);
-                event_base_set(base, ev_file_read);
-                event_add(ev_file_read, NULL);
-                event_base_dispatch(base);
-                event_base_loop(base, EVLOOP_NONBLOCK);
-*/       
-
-
+	// Create epoll event
+	int epfd = epoll_create(1);
+	printf("epoll_create(1) returned %d: %s\n", epfd, strerror(errno));
+	struct epoll_event ev;
+	ev.events = EPOLLPRI;
+	ev.data.fd = file;
+	int n = epoll_ctl(epfd, EPOLL_CTL_ADD, file, &ev);
 	
+	//read initial State
+	int pinVal = dir1.get();
+
+	/* Initalize the event library */
+	struct event_base* base = event_base_new();
+
+	/*create the event*/
+	struct event *ev_file_read = event_new(base, epfd, EV_READ|EV_PERSIST, my_cb, NULL);
+
+	/* Initalize one event */
+	event_set(ev_file_read, epfd, EV_READ|EV_PERSIST, my_cb, &ev_file_read);
+	event_base_set(base, ev_file_read);
+	event_add(ev_file_read, NULL);
+	event_base_dispatch(base);
+	event_base_loop(base, EVLOOP_NONBLOCK);
+
+	/*
+	TimerUtil_delta(&timerObj, &time);
+	timeG=time;
+        printf("endtime = %ld\n", timeG);
+	*/
 	return 0;
 }
 
-static void
+
+       static void
         my_cb(int fd, short event, void *arg)
         {
+		long unsigned time;
+		time=timeG;
                 int m = 0;
                 char buf[64];
                 m = lseek(file, 0, SEEK_SET);
@@ -134,6 +130,8 @@ static void
                 };
                 if(count==10){
                         printf("count = %i\n", count);
-                };
+               };
         }
+
+
 

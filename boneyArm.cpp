@@ -34,6 +34,8 @@
 #define RISING		"rising"
 #define FALLING		"falling"
 #define BOTH		"both"
+#define HIGH		"1"
+#define LOW		"0"
 
 using namespace std;
 
@@ -90,6 +92,19 @@ int main()
 {
 	cout << "--------STARTING BONEY ARM-----------" << endl;
 	pinInit();	//EXPORTS/CONFIGURES ALL GPIOS AND PWMS
+
+	shoulderSpeed.Run();
+	shoulderDir.set(LOW);
+	sleep(2);
+	shoulderDir.set(HIGH);
+	sleep(2);
+	shoulderDir.set(LOW);
+	sleep(2);
+	shoulderDir.set(HIGH);
+	sleep(2);
+	shoulderDir.set(LOW);
+	sleep(2);
+	shoulderSpeed.Stop();
 
 	return 0;
 }

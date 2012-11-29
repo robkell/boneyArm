@@ -125,8 +125,6 @@ gpio::gpio( int i )
 	//std::cout << "export fd: " << sysfsfile_export.str().c_str() << endl;
 	
 	sysfsfd_export = open(sysfsfile_export.str().c_str(), O_WRONLY);
-
-	sysfsfd_export = open(sysfsfile_export.str().c_str(), O_WRONLY);
 	if(sysfsfd_export<0){
 	 	printf("Cannot open GPIO to export it: %s\n", strerror( errno ));
 	}
@@ -134,17 +132,19 @@ gpio::gpio( int i )
 	close(sysfsfd_export);
 
 	//std::cout << "direction fd: " << sysfsfile_direction.str().c_str() << endl;
-	sysfsfd_direction = open(sysfsfile_direction.str().c_str(),  O_WRONLY);
+	sysfsfd_direction = open(sysfsfile_direction.str().c_str(),  
+O_RDWR);
 	if(sysfsfd_direction<0){
 	 	printf("Cannot open GPIO direction: %s\n", strerror( errno ));
 	}
 
-	sysfsfd_edge = open(sysfsfile_edge.str().c_str(),  O_WRONLY);
+	sysfsfd_edge = open(sysfsfile_edge.str().c_str(),  O_RDWR);
 	if(sysfsfd_edge<0){
 	 	printf("Cannot open GPIO edge: %s\n", strerror( errno ));
 	}
 
-	sysfsfd_value = open(sysfsfile_value.str().c_str(),  O_WRONLY);
+	sysfsfd_value = open(sysfsfile_value.str().c_str(),  O_RDWR | 
+O_NONBLOCK);
 	if(sysfsfd_value<0){
 	 	printf("Cannot open GPIO value: %s\n", strerror( errno ));
 	}
@@ -195,7 +195,9 @@ int gpio::get()
 		int d, m = 0;
                 char buf[64];
                 m = lseek(sysfsfd_value, 0, SEEK_SET);
+		//std::cout << "lseek = "<< m << std::endl;
                 m = read(sysfsfd_value, &buf, 63);
+		//std::cout << "read = "<< m << std::endl;
 		d = atoi(buf);
 		std::cout << "gpio"<< gpio::num << ", value is " << d << std::endl;
 		return d;
@@ -215,7 +217,8 @@ gpio::~gpio()
 	close(sysfsfd_direction);
 	close(sysfsfd_edge);
 	close(sysfsfd_value);
-	sysfsfd_unexport = open(sysfsfile_unexport.str().c_str(), O_WRONLY);
+	sysfsfd_unexport = open(sysfsfile_unexport.str().c_str(), 
+O_RDWR);
 	if(sysfsfd_unexport<0){
 	 	printf("Cannot open GPIO to unexport it: %s\n", strerror( errno ));
 	}

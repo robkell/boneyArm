@@ -51,7 +51,7 @@ enum pin
                 P9_46
         };
 
-pin testPin = P8_46;
+pin testPin = P8_9;
 gpio::gpio dir1(testPin);
 long unsigned timeG;
 
@@ -83,7 +83,13 @@ int main()
 	
 	//read initial State
 	int pinVal = dir1.get();
-
+/*
+	int m=0;
+	char buf[64];
+	m=lseek(file,0,SEEK_SET);
+	m=read(file, &buf, 63);
+	buf[m]=0;
+*/
 	/* Initalize the event library */
 	struct event_base* base = event_base_new();
 
@@ -110,16 +116,19 @@ int main()
         my_cb(int fd, short event, void *arg)
         {
 		long unsigned time;
-		time=timeG;
-                int m = 0;
-                char buf[64];
-                m = lseek(file, 0, SEEK_SET);
-                m = read(file, &buf, 63);
-                buf[m] = 0;
-//              printf("Edge detected, value = %s\n", buf);
-
-                int num = atoi(buf);
-                if(num == 1){
+		//time=timeG;
+		int pinVal = dir1.get();
+/*	
+	int m=0;
+	char buf[64];
+	m=lseek(file,0,SEEK_SET);
+	m=read(file, &buf, 63);
+	buf[m]=0;
+*/	
+        printf("Edge detected, value = %i\n", pinVal);
+		//printf("Edge detected\n");
+                //int num = atoi(buf);
+/*                if(num == 1){
 //                      printf("rising edge\n");
                         TimerUtil_delta(&timerObj, &time);
                         float delta = time;
@@ -131,7 +140,7 @@ int main()
                 if(count==10){
                         printf("count = %i\n", count);
                };
-        }
+*/        }
 
 
 

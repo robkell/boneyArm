@@ -97,6 +97,7 @@ cPWM::~cPWM()
 	std::cout << "PWM "<< id << " stopped" << std::endl;
 	sysfsfid_run << "0" << std::endl;
 	std::cout << "called cPWM destructor of cPWM " << id << std::endl;
+	sysfsfid_request << "0" << std::endl;
 }
 
 } /* namespace cPWM */

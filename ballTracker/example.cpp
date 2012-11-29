@@ -25,7 +25,7 @@ int main(int ac, char** av)
 
 	balltracker::balltracker example(capture);
 	int i;
-	vector<int> pos(2,0); 
+	vector<int> pos(3,0); 
 	for(;;)
 	{
 		pos = example.processFrame(capture, true); //PASS TRUE/FALSE AS 2ND ARG TO DISPLAY IMG IN WINDOW
@@ -34,7 +34,7 @@ int main(int ac, char** av)
 		{
 			break;
 		}
-		cout<<"x: "<<pos[0]<<", y: "<<pos[1]<<endl;
+		cout<<"x: "<<pos[0]<<", y: "<<pos[1]<<", radius: "<<pos[2]<<endl;
 		
 	}
 	return 0;

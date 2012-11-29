@@ -5,6 +5,10 @@
 #include <vector>
 #include <stdio.h>
 #include "ballTracker.hpp"
+#include <cmath>
+#include <math.h>
+
+#define PI 3.14159
 
 using namespace cv;
 //using namespace std;
@@ -17,6 +21,8 @@ balltracker::balltracker(cv::VideoCapture& capture){
 	window_name = "Ball Tracker";
         height = (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT);
         width = (int) capture.get(CV_CAP_PROP_FRAME_WIDTH);
+	std::cout << "height: " << height << std::endl;
+	std::cout << "width: " << width << std::endl;
 
         S = cv::Size(  (int) capture.get(CV_CAP_PROP_FRAME_WIDTH),    
                         (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT)     );
@@ -65,7 +71,7 @@ std::vector<int> balltracker::processFrame(cv::VideoCapture& capture, bool showI
 	
 		int big=0;
 		int currBiggest=0;
-		std::vector<int> ballPosition(2,0);
+		std::vector<int> ballPosition(3,0);
 		if( !contours.empty() && !hierarchy.empty() )
 		{
 		        // iterate through all the top-level contours,
@@ -84,9 +90,13 @@ std::vector<int> balltracker::processFrame(cv::VideoCapture& capture, bool showI
 //       		    	cv::drawContours( frame, contours, big, color, CV_FILLED, 8, hierarchy );
 			int xCenter = mu[big].m10/mu[big].m00;
 			int yCenter = mu[big].m01/mu[big].m00;
+			int area = mu[big].m00;
+			//std::cout << "area = " << area <<std::endl;
+			int radius = sqrt(area);	//APPROX DIAMETER
 			//std::cout << "X Coordinate: " << xCenter << "\nY Coordinate: " << yCenter << std::endl;
 			ballPosition.at(0) = xCenter; 
 			ballPosition.at(1) = yCenter; 
+			ballPosition.at(2) = radius; 
 			int lineLength = 10;
 			int lineThickness = 2;
 			Point top, right, left, bottom;

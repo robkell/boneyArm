@@ -15,7 +15,7 @@ PID::PID(int id)
 
 }
 
-int PID::calcPID(int dest, int pos)
+int PID::calcPID(int dest, int pos, long dt)
 {
 		prev_error=current_error;
 		PID::dest = dest;
@@ -23,16 +23,16 @@ int PID::calcPID(int dest, int pos)
 		
 		current_error=dest-pos;
 		P=current_error;
-		std::cout << "P: " << P << std::endl;
+		std::cout << "P: " << (P*Kp) << std::endl;
 		//TODO: add dt calc
 
-		int dt = rand()%10 + 1;
+		//int dt = rand()%10 + 1;
 		//std::cout << dt << std::endl;
 
 		PID::D=(current_error-prev_error)/dt;
 		PID::I+=(current_error*dt);
-		std::cout << "D: " << D << std::endl;
-		std::cout << "I: " << I << std::endl;
+		std::cout << "D: " << (D*Kd) << std::endl;
+		std::cout << "I: " << (I*Ki) << std::endl;
 		pid = (Kp*P + Ki*I + Kd*D);
 		
 		//SATURATE THE RETURN DUTY CYCLE TO +/-100

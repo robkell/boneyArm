@@ -26,7 +26,7 @@ public:
 	PID(int id);
 	virtual ~PID();
 
-	int calcPID(int dest, int pos);
+	int calcPID(int dest, int pos, long dt);
 };
 
 } /* namespace PID */

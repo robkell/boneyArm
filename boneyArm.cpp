@@ -21,6 +21,7 @@
 #include <sys/epoll.h>
 #include <sys/types.h>
 #include <event.h>
+#include <cmath>
 
 #define EV_TIMEOUT      0x01
 #define EV_READ         0x02
@@ -36,6 +37,14 @@
 #define BOTH		"both"
 #define HIGH		"1"
 #define LOW		"0"
+
+#define OPENCLOSE	5
+#define WRIST		4
+#define ELBOW		3
+#define SHOULDER	2
+#define LEFTRIGHT	1
+
+#define PERIOD		10000000
 
 using namespace std;
 
@@ -85,14 +94,54 @@ cPWM::cPWM wristSpeed("ehrpwm.2:1");
 cPWM::cPWM elbowSpeed("ehrpwm.2:0");
 cPWM::cPWM shoulderSpeed("ehrpwm.0:1");
 cPWM::cPWM leftRightSpeed("ehrpwm.0:0");
+/*****************DEFINE SPEED PWMS***************/
+PID::PID openClosePID(OPENCLOSE);
+PID::PID wristPID(WRIST);
+PID::PID elbowPID(ELBOW);
+PID::PID shoulderPID(SHOULDER);
+PID::PID leftRightPID(LEFTRIGHT);
 
 void pinInit();
+void io_callback(int fd, short event, void *arg);
+double round(double r);
+
+
+long unsigned timeGlobal;
+TimerUtilObj timerObj;
+int leftRightCount, shoulderCount, elbowCount, wristCount, openCloseCount;
 
 int main()
 {
+        long unsigned time;
+        TimerUtil_reset(&timerObj);
+        TimerUtil_delta(&timerObj, &time);
+	timeGlobal=time;
+
 	cout << "--------STARTING BONEY ARM-----------" << endl;
 	pinInit();	//EXPORTS/CONFIGURES ALL GPIOS AND PWMS
 
+	int file = shoulderSense.retfd();
+	int epfd = epoll_create(1);
+        printf("epoll_create(1) returned %d: %s\n", epfd, strerror(errno));
+        struct epoll_event ev;
+        ev.events = EPOLLPRI;
+        ev.data.fd = file;
+        int n = epoll_ctl(epfd, EPOLL_CTL_ADD, file, &ev);
+
+        //read initial State
+        int pinVal = shoulderSense.get();
+        /* Initalize the event library */
+        struct event_base* base = event_base_new();
+	/*create the event*/
+        struct event *ev_file_read = event_new(base, epfd, EV_READ|EV_PERSIST, io_callback, NULL);
+        /* Initalize one event */
+        event_set(ev_file_read, epfd, EV_READ|EV_PERSIST, io_callback, &ev_file_read);
+        event_base_set(base, ev_file_read);
+        event_add(ev_file_read, NULL);
+        event_base_dispatch(base);
+        event_base_loop(base, EVLOOP_NONBLOCK);
+
+/*
 	shoulderSpeed.Run();
 	shoulderDir.set(LOW);
 	sleep(2);
@@ -105,10 +154,36 @@ int main()
 	shoulderDir.set(LOW);
 	sleep(2);
 	shoulderSpeed.Stop();
-
+*/
 	return 0;
 }
 
+double round(double r)
+{
+        return (r>0.0) ? floor(r + 0.5) : ceil(r - 0.5);
+}
+
+void io_callback(int fd, short event, void *arg)
+{
+	long unsigned time = timeGlobal;
+        TimerUtil_delta(&timerObj, &time);
+	timeGlobal=time;
+	if(fd==shoulderSense.retfd())
+	{
+		shoulderCount++;
+		double dc = shoulderPID.calcPID(50,shoulderCount, time)/100;
+		double speed = round(PERIOD*dc);
+		if(speed>0)
+		{
+			shoulderDir.set(HIGH);
+		}else if(speed<0)
+		{
+			shoulderDir.set(LOW);
+			speed=abs(speed);
+		}
+		shoulderSpeed.Period(speed);
+	}
+}s
 
 void pinInit()
 {
@@ -119,25 +194,25 @@ void pinInit()
 	openCloseSense.edge(RISING);
 	openCloseCalib.direction(IN);
 	openCloseCalib.edge(BOTH);
-	
+
 	wristDir.direction(OUT);
 	wristSense.direction(IN);
 	wristSense.edge(RISING);
 	wristCalib.direction(IN);
 	wristCalib.edge(BOTH);
-	
+
 	elbowDir.direction(OUT);
 	elbowSense.direction(IN);
 	elbowSense.edge(RISING);
 	elbowCalib.direction(IN);
 	elbowCalib.edge(BOTH);
-	
+
 	shoulderDir.direction(OUT);
 	shoulderSense.direction(IN);
 	shoulderSense.edge(RISING);
 	shoulderCalib.direction(IN);
 	shoulderCalib.edge(BOTH);
-	
+
 	leftRighDir.direction(OUT);
 	leftRightSense.direction(IN);
 	leftRightSense.edge(RISING);
@@ -147,28 +222,28 @@ void pinInit()
 	//SET PWM DEFAULTS
 	cout << "--------INITIALISING PWM'S-----------" << endl;
 	openCloseSpeed.Request(	1);
-	openCloseSpeed.Period(	10000000);
-	openCloseSpeed.Duty(	 5000000);
+	openCloseSpeed.Period(PERIOD);
+	openCloseSpeed.Duty(PERIOD/2);
 	openCloseSpeed.Polarity(0);
 
-	wristSpeed.Request(	1);
-	wristSpeed.Period(	10000000);
-	wristSpeed.Duty(	 5000000);
+	wristSpeed.Request(1);
+	wristSpeed.Period(PERIOD);
+	wristSpeed.Duty(PERIOD/2);
 	wristSpeed.Polarity(0);
 
 	elbowSpeed.Request(	1);
-	elbowSpeed.Period(	10000000);
-	elbowSpeed.Duty(	 5000000);
+	elbowSpeed.Period(PERIOD);
+	elbowSpeed.Duty(PERIOD/2);
 	elbowSpeed.Polarity(0);
 
 	shoulderSpeed.Request(	1);
-	shoulderSpeed.Period(	10000000);
-	shoulderSpeed.Duty(	 5000000);
+	shoulderSpeed.Period(PERIOD);
+	shoulderSpeed.Duty(PERIOD/2);
 	shoulderSpeed.Polarity(0);
 
 	leftRightSpeed.Request(	1);
-	leftRightSpeed.Period(	10000000);
-	leftRightSpeed.Duty(	 5000000);
+	leftRightSpeed.Period(PERIOD);
+	leftRightSpeed.Duty(PERIOD/2);
 	leftRightSpeed.Polarity(0);
 
 }

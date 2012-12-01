@@ -4,6 +4,8 @@
 #include <time.h>
 #include <iostream>
 
+#define LOW_LIMIT	10
+
 namespace PID {
 
 
@@ -11,7 +13,7 @@ PID::PID(int id)
 {
 	std::cout << "called PID constructor" << std::endl;
 	PID::id = id;
-	srand ( time(NULL) );
+	//srand ( time(NULL) );
 
 }
 
@@ -46,13 +48,16 @@ int PID::calcPID(int dest, int pos, long dt)
 		};
 
 		//TODO: Add deadband Calc
+		if(abs(pid)<LOW_LIMIT)
+		{
+			return 0;
+		}
 		return pid;
 }
 
 PID::~PID()
 {
-	std::cout << "PID "<< PID::id << " destructor called" << 
-std::endl;
+	std::cout << "PID "<< PID::id << " destructor called" << std::endl;
 }
 
 } /* namespace PID */

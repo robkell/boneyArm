@@ -103,12 +103,13 @@ PID::PID leftRightPID(LEFTRIGHT);
 
 void pinInit();
 void io_callback(int fd, short event, void *arg);
-double round(double r);
-
+float myRound(float r);
+int direction=0;
 
 long unsigned timeGlobal;
 TimerUtilObj timerObj;
-int leftRightCount, shoulderCount, elbowCount, wristCount, openCloseCount;
+int leftRightCount=0, shoulderCount=0, elbowCount=0, wristCount=0, 
+openCloseCount=0;
 
 int main()
 {
@@ -128,6 +129,27 @@ int main()
         ev.data.fd = file;
         int n = epoll_ctl(epfd, EPOLL_CTL_ADD, file, &ev);
 
+		cout << "starting shoulder" << endl;
+		float dc = (float)shoulderPID.calcPID(50,shoulderCount, 
+time)/100;
+		cout << "Calculated duty cycle = " << dc << endl;
+		double speed = myRound(PERIOD*dc);
+		cout << "speed = " << speed << endl;
+		if(speed>0)
+		{
+			shoulderDir.set(HIGH);
+			direction=1;
+		}else if(speed<0)
+		{
+			shoulderDir.set(LOW);
+			direction=0;
+			speed=abs(speed);
+		}
+		shoulderSpeed.Duty(speed);
+
+	shoulderSpeed.Run();
+	shoulderDir.set(LOW);
+	direction=0;
         //read initial State
         int pinVal = shoulderSense.get();
         /* Initalize the event library */
@@ -140,6 +162,7 @@ int main()
         event_add(ev_file_read, NULL);
         event_base_dispatch(base);
         event_base_loop(base, EVLOOP_NONBLOCK);
+		
 
 /*
 	shoulderSpeed.Run();
@@ -158,7 +181,7 @@ int main()
 	return 0;
 }
 
-double round(double r)
+float myRound(float r)
 {
         return (r>0.0) ? floor(r + 0.5) : ceil(r - 0.5);
 }
@@ -168,22 +191,34 @@ void io_callback(int fd, short event, void *arg)
 	long unsigned time = timeGlobal;
         TimerUtil_delta(&timerObj, &time);
 	timeGlobal=time;
-	if(fd==shoulderSense.retfd())
-	{
-		shoulderCount++;
-		double dc = shoulderPID.calcPID(50,shoulderCount, time)/100;
-		double speed = round(PERIOD*dc);
+	cout << "PID Update" << endl;
+	//if(fd==shoulderSense.retfd())
+	//{
+		int pinVal = shoulderSense.get();
+		if(direction==1){
+			shoulderCount++;
+		}else{
+			shoulderCount--;
+		}
+		float dc = (float)shoulderPID.calcPID(50,shoulderCount, 
+time)/100;
+		double speed = myRound(PERIOD*dc);
+		cout << "speed = " << speed << endl;
+		
 		if(speed>0)
 		{
+			direction=1;
 			shoulderDir.set(HIGH);
 		}else if(speed<0)
 		{
 			shoulderDir.set(LOW);
 			speed=abs(speed);
+			direction=0;
+
 		}
-		shoulderSpeed.Period(speed);
-	}
-}s
+		shoulderSpeed.Duty(speed);
+	//}
+}
 
 void pinInit()
 {

@@ -18,9 +18,9 @@ private:
 	int D;
 	int pid;
 
-	#define Kp 0.1
+	#define Kp 1
 	#define Ki 0
-	#define Kd 0.02
+	#define Kd 0
 
 public:
 	PID(int id);

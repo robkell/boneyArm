@@ -14,6 +14,7 @@ PID::PID(int id)
 	std::cout << "called PID constructor" << std::endl;
 	PID::id = id;
 	//srand ( time(NULL) );
+	current_error=0;
 
 }
 
@@ -31,11 +32,12 @@ int PID::calcPID(int dest, int pos, long dt)
 		//int dt = rand()%10 + 1;
 		//std::cout << dt << std::endl;
 
-		PID::D=(current_error-prev_error)/dt;
-		PID::I+=(current_error*dt);
+		PID::D=0;(current_error-prev_error)/dt;
+		PID::I+=0;(current_error*dt);
 		std::cout << "D: " << (D*Kd) << std::endl;
 		std::cout << "I: " << (I*Ki) << std::endl;
 		pid = (Kp*P + Ki*I + Kd*D);
+		std::cout << "PID: " << pid << std::endl;
 		
 		//SATURATE THE RETURN DUTY CYCLE TO +/-100
 		if(pid>100)
@@ -51,8 +53,11 @@ int PID::calcPID(int dest, int pos, long dt)
 		if(abs(pid)<LOW_LIMIT)
 		{
 			return 0;
+		}else{
+			return pid;
 		}
-		return pid;
+		//return pid;
+
 }
 
 PID::~PID()

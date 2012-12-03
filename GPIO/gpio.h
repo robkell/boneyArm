@@ -42,7 +42,7 @@ public:
 	int set(std::string d);
 	int get();
 	int retfd(){return sysfsfd_value;};
-	int retVal(){return Value;};
+	std::string retVal(){return Value;};
 };
 
 } /* namespace gpio */

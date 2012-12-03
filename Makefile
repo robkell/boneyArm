@@ -2,6 +2,10 @@ boneyArm: ik.o pid.o ballTracker.o gpio.o cPWM.o
 	g++ boneyArm.cpp ./IK/ik.o ./PID/pid.o ./ballTracker/ballTracker.o ./GPIO/gpio.o \
 	./PWM/cPWM.o -I. -levent -lopencv_highgui -lopencv_core -lopencv_imgproc -ffast-math -O2 -o boneyArm
 
+boneyArm_tracker: ik.o pid.o ballTracker.o gpio.o cPWM.o
+	g++ boneyArm_tracker.cpp ./IK/ik.o ./PID/pid.o ./ballTracker/ballTracker.o ./GPIO/gpio.o \
+	./PWM/cPWM.o -I. -levent -lopencv_highgui -lopencv_core -lopencv_imgproc -ffast-math -O2 -o boneyArm_tracker
+
 ik.o:
 	cd ./IK; make ik.o
 

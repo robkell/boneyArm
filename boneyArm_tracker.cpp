@@ -62,7 +62,8 @@
 #define WRIST_DPP	0.68
 
 #define PERIOD		10000000
-
+#define FRAME_RATE_S	0
+#define FRAME_RATE_US	200000	//200ms
 using namespace std;
 
 //PIN DECLARATIONS
@@ -129,6 +130,8 @@ void leftright_calib_callback(int fd, short event, void *arg);
 void elbow_calib_callback(int fd, short event, void *arg);
 void wrist_calib_callback(int fd, short event, void *arg);
 void openclose_calib_callback(int fd, short event, void *arg);
+void balltracker_callback(int fd, short event, void *arg);
+
 float myRound(float r);
 
 long unsigned timeGlobal;
@@ -251,7 +254,12 @@ int main()
         event_base_set(base, ev_openclose_calib_read);
         event_add(ev_openclose_calib_read, NULL);
 
-        event_base_dispatch(base);
+	/*TIMEOUT EVENT TO GRAB NEXT FRAME*/
+	struct timeval rate = { FRAME_RATE_S, FRAME_RATE_US }
+	frame_ev = event_new(base, -1, EV_PERSIST, balltracker_callback, NULL);
+        event_add(frame_ev, &rate);
+
+	event_base_dispatch(base);
         event_base_loop(base, EVLOOP_NONBLOCK);
 
 	return 0;
@@ -360,6 +368,11 @@ void openclose_calib_callback(int fd, short event, void *arg)
 	}else{
 		shoulderCount--;
 	}
+}
+void balltracker_callback(int fd, short event, void *arg)
+{
+	//return ball position every 200ms
+	cout << "Updating ball position..." <<endl;
 }
 
 /*

@@ -28,7 +28,8 @@ class balltracker {
 		balltracker(cv::VideoCapture& capture);
 		~balltracker();
 		std::vector<int> processFrame(cv::VideoCapture& capture, bool showImage);
-		
+		int retHeight(){ return height; };
+		int retWidth(){ return width; };
 };
 
 }

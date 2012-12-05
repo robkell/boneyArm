@@ -42,7 +42,7 @@ std::vector<int> balltracker::processFrame(cv::VideoCapture& capture, bool showI
                 return std::vector<int>(-1);
 
 		//SMOOTHING FILTER AND CONVERT TO HSV COLOUR SPACE
-		cv::medianBlur(frame, frame, 5);
+		//cv::medianBlur(frame, frame, 5);
 		cv::cvtColor(frame,imghsv,CV_RGB2HSV);
 
 		//THRESHOLDS

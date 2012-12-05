@@ -30,23 +30,24 @@ balltracker::balltracker(cv::VideoCapture& capture){
 	std::cout << "height: " << height << std::endl;
 	std::cout << "width: " << width << std::endl;
 
-        S = cv::Size(  (int) capture.get(CV_CAP_PROP_FRAME_WIDTH),    
-                        (int) capture.get(CV_CAP_PROP_FRAME_HEIGHT)     );
+        S = cv::Size(  	width,
+			height	);
 
 }
-    
+
 std::vector<int> balltracker::processFrame(cv::VideoCapture& capture, bool showImage)
     {
             capture >> frame;
             if (frame.empty())
                 return std::vector<int>(-1);
-		
+
 		//SMOOTHING FILTER AND CONVERT TO HSV COLOUR SPACE
 		cv::medianBlur(frame, frame, 5);
 		cv::cvtColor(frame,imghsv,CV_RGB2HSV);
-		
+
 		//THRESHOLDS
-		cv::Mat img(cv::Size(width,height), CV_8UC3);
+		cv::Mat imgGray(cv::Size(width,height), CV_8UC1);
+		//cv::Mat img(cv::Size(width,height), CV_8UC3);
 		cv::Vec3b hsvlower;
 		hsvlower[0] = 50; hsvlower[1] = 120; hsvlower[2] = 75;
 		cv::Vec3b hsvupper;
@@ -60,9 +61,11 @@ std::vector<int> balltracker::processFrame(cv::VideoCapture& capture, bool showI
 		for (int i=0 ; i < height; ++i){
 			for(int j=0 ; j < width; ++j){
 				if ((imghsv.at<cv::Vec3b>(i,j)[0] > hsvlower[0])&&(imghsv.at<cv::Vec3b>(i,j)[0] < hsvupper[0])&&(imghsv.at<cv::Vec3b>(i,j)[1] > hsvlower[1])&&(imghsv.at<cv::Vec3b>(i,j)[1] < hsvupper[1])&&(imghsv.at<cv::Vec3b>(i,j)[2] > hsvlower[2])&&(imghsv.at<cv::Vec3b>(i,j)[2] < hsvupper[2])){
-					img.at<cv::Vec3b>(i,j) = white;
+					//img.at<cv::Vec3b>(i,j) = white;
+					imgGray.at<uchar>(i,j) = 255;
 				}else{
-					img.at<cv::Vec3b>(i,j) = black;
+					//img.at<cv::Vec3b>(i,j) = black;
+					imgGray.at<uchar>(i,j) = 0;
 				}
 			}
 	    	}
@@ -70,14 +73,13 @@ std::vector<int> balltracker::processFrame(cv::VideoCapture& capture, bool showI
 		//CONVERT TO GREYSCALE FORMAT AND FIND CONTOURS
 		cv::vector< cv::vector<cv::Point> > contours;
     		cv::vector<cv::Vec4i> hierarchy;
-		cv::Mat imgGray;
-		cv::cvtColor(img, imgGray, CV_RGB2GRAY);
 		cv::findContours( imgGray, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE );
 		cv::vector<cv::Moments> mu(contours.size());
 	
 		int big=0;
 		int currBiggest=0;
 		std::vector<int> ballPosition(3,0);
+
 		if( !contours.empty() && !hierarchy.empty() )
 		{
 		        // iterate through all the top-level contours,
@@ -93,7 +95,6 @@ std::vector<int> balltracker::processFrame(cv::VideoCapture& capture, bool showI
 			//FIND THE CENTER OF MASS FOR THE LARGEST DETECTED OBJECT
        		    	cv::Scalar color( 0, 255, 0 );
        		    	cv::Scalar crossHare( 255, 255, 255 );
-//       		    	cv::drawContours( frame, contours, big, color, CV_FILLED, 8, hierarchy );
 			int xCenter = mu[big].m10/mu[big].m00;
 			int yCenter = mu[big].m01/mu[big].m00;
 			int area = mu[big].m00;
@@ -103,20 +104,21 @@ std::vector<int> balltracker::processFrame(cv::VideoCapture& capture, bool showI
 			ballPosition.at(0) = xCenter; 
 			ballPosition.at(1) = yCenter; 
 			ballPosition.at(2) = radius; 
-			int lineLength = 10;
-			int lineThickness = 2;
-			Point top, right, left, bottom;
-			top.x = xCenter;
-			top.y = yCenter-lineLength;
-			right.x = xCenter+lineLength;
-			right.y = yCenter;
-			bottom.x = xCenter;
-			bottom.y = yCenter+lineLength;
-			left.x = xCenter-lineLength;
-			left.y = yCenter;
-			line(frame, top, bottom, crossHare, lineThickness);
-			line(frame, left, right, crossHare, lineThickness);
-			//std::cout << "X Coordinate: " << ballPosition[0] << ", Y Coordinate: " << ballPosition[1] << std::endl;
+			if(showImage){
+				int lineLength = 10;
+				int lineThickness = 2;
+				Point top, right, left, bottom;
+				top.x = xCenter;
+				top.y = yCenter-lineLength;
+				right.x = xCenter+lineLength;
+				right.y = yCenter;
+				bottom.x = xCenter;
+				bottom.y = yCenter+lineLength;
+				left.x = xCenter-lineLength;
+				left.y = yCenter;
+				line(frame, top, bottom, crossHare, lineThickness);
+				line(frame, left, right, crossHare, lineThickness);
+			}
     		}
 		
 

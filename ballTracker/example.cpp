@@ -5,6 +5,7 @@
 #include <iostream>
 #include <string>
 #include <unistd.h>
+#include <time.h>
 
 using namespace std;
 
@@ -21,8 +22,11 @@ int main(int ac, char** av)
     		}
 
 	balltracker::balltracker example(capture);
-	int i;
+	int i, counter=0;
+	time_t start, end;
+	double fps, sec;
 	vector<int> pos(3,0); 
+	time(&start);
 	for(;;)
 	{
 		pos = example.processFrame(capture, false); //PASS TRUE/FALSE AS 2ND ARG TO DISPLAY IMG IN WINDOW
@@ -32,7 +36,12 @@ int main(int ac, char** av)
 			break;
 		}
 		cout<<"x: "<<pos[0]<<", y: "<<pos[1]<<", radius: "<<pos[2]<<endl;
-		
+		time(&end);
+		counter++;
+		sec = difftime(end, start);
+		fps = counter/sec;
+		cout << "FPS = " << fps << endl;
+
 	}
 	return 0;
 }

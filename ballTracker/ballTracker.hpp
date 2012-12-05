@@ -23,13 +23,14 @@ class balltracker {
 		std::string window_name;
 		char filename[200];
 		//std::vector<int> ballPosition;
+		cv::VideoCapture cap;
 	public:
-		//cv::VideoCapture& capture;
 		balltracker(cv::VideoCapture& capture);
 		~balltracker();
 		std::vector<int> processFrame(cv::VideoCapture& capture, bool showImage);
 		int retHeight(){ return height; };
 		int retWidth(){ return width; };
+		cv::VideoCapture retCapture(){ return cap; };
 };
 
 }

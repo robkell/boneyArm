@@ -3,7 +3,11 @@
 #include "./IK/ik.hpp"
 #include "./PID/pid.hpp"
 #include "./GPIO/timerutil.h"
+#include "./ballTracker/ballTracker.hpp"
 
+#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/objdetect/objdetect.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include <iostream>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -60,6 +64,13 @@
 #define SHOULDER_DPP	0.55
 #define ELBOW_DPP	0.5
 #define WRIST_DPP	0.68
+
+#define LEFTRIGHT_OFFSET	15
+#define SHOULDER_OFFSET		165
+#define ELBOW_OFFSET		-126
+#define WRIST_OFFSET		50
+#define OPENCLOSE_OFFSET	0
+
 
 #define PERIOD		10000000
 #define FRAME_RATE_S	0
@@ -138,22 +149,27 @@ long unsigned timeGlobal;
 TimerUtilObj timerObj;
 int leftRightCount=0, shoulderCount=0, elbowCount=0, wristCount=0, openCloseCount=0;
 
-int main()
+int main(int ac, char** av)
 {
         long unsigned time;
         TimerUtil_reset(&timerObj);
         TimerUtil_delta(&timerObj, &time);
 	timeGlobal=time;
+	
+	/**CAPTURE VIDEO AND INSTANTIATE BALLTRACKER***/
+        //string arg = av[1];
+        cv::VideoCapture capture(0); 
+	if (!capture.isOpened())
+        {
+        	cerr << "Failed to open file/cam!\n"<<endl;
+        	return 1;
+        }
+        balltracker::balltracker tracker(capture);
+	balltracker::balltracker* ptracker = &tracker;
 
 	cout << "--------STARTING BONEY ARM-----------" << endl;
 	pinInit();	//EXPORTS/CONFIGURES ALL GPIOS AND PWMS
-/*
-	int shoulderfd = shoulderSense.retfd();
-	int leftrightfd = leftRightSense.retfd();
-	int elbowfd = elbowSense.retfd();
-	int wristfd = wristSense.retfd();
-	int openclosefd = opencloseSense.retfd();
-*/
+
 	int sense_fds[5] = {	leftRightSense.retfd(),
 				shoulderSense.retfd(),
 				elbowSense.retfd(),
@@ -201,7 +217,7 @@ int main()
         int pinVal_oc_sense = openCloseSense.get();
         /* Initalize the event library */
         struct event_base* base = event_base_new();
-	/*create the event*/
+	/*create the events*/
         struct event *ev_leftright_sense_read = event_new(base, sense_epfd[1], EV_READ|EV_PERSIST, leftright_sense_callback, NULL);
         struct event *ev_leftright_calib_read = event_new(base, calib_epfd[1], EV_READ|EV_PERSIST, leftright_calib_callback, NULL);
         struct event *ev_shoulder_sense_read = event_new(base, sense_epfd[2], EV_READ|EV_PERSIST, shoulder_sense_callback, NULL);
@@ -255,8 +271,9 @@ int main()
         event_add(ev_openclose_calib_read, NULL);
 
 	/*TIMEOUT EVENT TO GRAB NEXT FRAME*/
-	struct timeval rate = { FRAME_RATE_S, FRAME_RATE_US }
-	frame_ev = event_new(base, -1, EV_PERSIST, balltracker_callback, NULL);
+	struct event *frame_ev;
+	struct timeval rate = { FRAME_RATE_S, FRAME_RATE_US };
+	frame_ev = event_new(base, -1, EV_PERSIST, balltracker_callback, (void *)ptracker);
         event_add(frame_ev, &rate);
 
 	event_base_dispatch(base);
@@ -320,59 +337,90 @@ void openclose_sense_callback(int fd, short event, void *arg)
 	}
 }
 
-void shoulder_calib_callback(int fd, short event, void *arg)
+void leftright_calib_callback(int fd, short event, void *arg)
 {
-	int pinVal = shoulderSense.get();
-	if(shoulderDir.retVal()==HIGH){
-		shoulderCount++;
+	int pinVal = leftRightCalib.get();
+	if(leftRightDir.retVal()==HIGH){
+		if(pinVal==0) leftRightCount=LEFTRIGHT_OFFSET;
 	}else{
-		shoulderCount--;
+		if(pinVal==1) leftRightCount=LEFTRIGHT_OFFSET;
 	}
 }
 
-void leftright_calib_callback(int fd, short event, void *arg)
+void shoulder_calib_callback(int fd, short event, void *arg)
 {
-	int pinVal = shoulderSense.get();
+	int pinVal = shoulderCalib.get();
 	if(shoulderDir.retVal()==HIGH){
-		shoulderCount++;
+		if(pinVal==0) shoulderCount=SHOULDER_OFFSET;
 	}else{
-		shoulderCount--;
+		if(pinVal==1) shoulderCount=SHOULDER_OFFSET;
 	}
 }
 
 void elbow_calib_callback(int fd, short event, void *arg)
 {
-	int pinVal = shoulderSense.get();
-	if(shoulderDir.retVal()==HIGH){
-		shoulderCount++;
+	int pinVal = elbowCalib.get();
+	if(elbowDir.retVal()==HIGH){
+		if(pinVal==0) elbowCount=ELBOW_OFFSET;
 	}else{
-		shoulderCount--;
+		if(pinVal==1) elbowCount=ELBOW_OFFSET;
 	}
 }
 
 void wrist_calib_callback(int fd, short event, void *arg)
 {
-	int pinVal = shoulderSense.get();
-	if(shoulderDir.retVal()==HIGH){
-		shoulderCount++;
+	int pinVal = wristCalib.get();
+	if(wristDir.retVal()==HIGH){
+		if(pinVal==0) wristCount=WRIST_OFFSET;
 	}else{
-		shoulderCount--;
+		if(pinVal==1) wristCount=WRIST_OFFSET;
 	}
 }
 
 void openclose_calib_callback(int fd, short event, void *arg)
 {
-	int pinVal = shoulderSense.get();
-	if(shoulderDir.retVal()==HIGH){
-		shoulderCount++;
+	int pinVal = openCloseCalib.get();
+	if(openCloseDir.retVal()==HIGH){
+		if(pinVal==0) openCloseCount=OPENCLOSE_OFFSET;
 	}else{
-		shoulderCount--;
+		if(pinVal==1) openCloseCount=OPENCLOSE_OFFSET;
 	}
 }
 void balltracker_callback(int fd, short event, void *arg)
 {
 	//return ball position every 200ms
 	cout << "Updating ball position..." <<endl;
+	vector<int> pos(3,0);	//{x,y,radius};
+	balltracker::balltracker tracker = *(balltracker::balltracker *)arg;
+	cv::VideoCapture capture = tracker.retCapture();
+	
+	pos = tracker.processFrame(capture, false); //PASS TRUE/FALSE AS 2ND ARG TO DISPLAY IMG IN WINDOW
+	float W = (float)tracker.retWidth();
+	float H =(float)tracker.retHeight();
+	cout << "W = " << W << endl;
+	cout << "H = " << H << endl;
+	cout << "pos = <" <<pos[0]<<", "<<pos[1]<<", "<<pos[2]<<">"<< endl;
+
+
+	//DETECTED OBJECT OFFSETS FROM CENTER NORMALISED TO FRAME DIMENSIONS
+	float x_offset = ((pos[0] - (W/2))/W)*2;
+	cout << "x_offset = " << x_offset << endl;
+	float y_offset = ((pos[1] - (H/2))/H)*2;
+	
+	if(x_offset<0)
+	{
+		leftRightDir.set(LOW);
+		x_offset=abs(x_offset);
+	}else{
+		leftRightDir.set(HIGH);
+	}
+	if(x_offset<0.10)
+	{
+		leftRightSpeed.Duty(0);
+	}else{
+		leftRightSpeed.Duty(x_offset*PERIOD);
+	}
+	
 }
 
 /*

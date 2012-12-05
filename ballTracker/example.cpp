@@ -12,11 +12,8 @@ using namespace std;
 int main(int ac, char** av)
 {
 	cout << "OO balltracker example" << endl;
-	string arg = av[1];
-	cv::VideoCapture capture(arg); 
-	if (!capture.isOpened())
-        capture.open(atoi(arg.c_str()));
-
+	//string arg = av[1];
+	cv::VideoCapture capture(0); 
 	if (!capture.isOpened())
 		{
         		cerr << "Failed to open file/cam!\n"<<endl;
@@ -28,7 +25,7 @@ int main(int ac, char** av)
 	vector<int> pos(3,0); 
 	for(;;)
 	{
-		pos = example.processFrame(capture, true); //PASS TRUE/FALSE AS 2ND ARG TO DISPLAY IMG IN WINDOW
+		pos = example.processFrame(capture, false); //PASS TRUE/FALSE AS 2ND ARG TO DISPLAY IMG IN WINDOW
 		//usleep(500000);
 		if(pos[0]==-1)
 		{

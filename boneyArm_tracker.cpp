@@ -74,7 +74,7 @@
 
 #define PERIOD		10000000
 #define FRAME_RATE_S	0
-#define FRAME_RATE_US	200000	//200ms
+#define FRAME_RATE_US	100000	// 10fps
 using namespace std;
 
 //PIN DECLARATIONS
@@ -129,8 +129,14 @@ PID::PID wristPID(WRIST);
 PID::PID elbowPID(ELBOW);
 PID::PID shoulderPID(SHOULDER);
 PID::PID leftRightPID(LEFTRIGHT);
+/************ Initalize the event library*********/
+struct event_base* base = event_base_new();
+/*************Instantiate opencv objects**********/
+cv::VideoCapture capture(0); 
+balltracker::balltracker tracker(capture);
 
 void pinInit();
+void exit_handler(int s);
 void shoulder_sense_callback(int fd, short event, void *arg);
 void leftright_sense_callback(int fd, short event, void *arg);
 void elbow_sense_callback(int fd, short event, void *arg);
@@ -156,19 +162,25 @@ int main(int ac, char** av)
         TimerUtil_delta(&timerObj, &time);
 	timeGlobal=time;
 	
-	/**CAPTURE VIDEO AND INSTANTIATE BALLTRACKER***/
-        //string arg = av[1];
-        cv::VideoCapture capture(0); 
 	if (!capture.isOpened())
         {
         	cerr << "Failed to open file/cam!\n"<<endl;
         	return 1;
         }
-        balltracker::balltracker tracker(capture);
 	balltracker::balltracker* ptracker = &tracker;
 
 	cout << "--------STARTING BONEY ARM-----------" << endl;
 	pinInit();	//EXPORTS/CONFIGURES ALL GPIOS AND PWMS
+	
+	//SIGINT HANDLER
+	struct sigaction sigIntHandler;
+	sigIntHandler.sa_handler = exit_handler;
+	sigemptyset(&sigIntHandler.sa_mask);
+	sigIntHandler.sa_flags = 0;
+	sigaction(SIGINT, &sigIntHandler, NULL);
+
+
+	//REGISTER PIN/CAPTURE EVENTS
 
 	int sense_fds[5] = {	leftRightSense.retfd(),
 				shoulderSense.retfd(),
@@ -215,8 +227,6 @@ int main(int ac, char** av)
         int pinVal_e_sense = elbowSense.get();
         int pinVal_w_sense = wristSense.get();
         int pinVal_oc_sense = openCloseSense.get();
-        /* Initalize the event library */
-        struct event_base* base = event_base_new();
 	/*create the events*/
         struct event *ev_leftright_sense_read = event_new(base, sense_epfd[1], EV_READ|EV_PERSIST, leftright_sense_callback, NULL);
         struct event *ev_leftright_calib_read = event_new(base, calib_epfd[1], EV_READ|EV_PERSIST, leftright_calib_callback, NULL);
@@ -300,6 +310,7 @@ void shoulder_sense_callback(int fd, short event, void *arg)
 void leftright_sense_callback(int fd, short event, void *arg)
 {
 	int pinVal = shoulderSense.get();
+	cout << "sense edge!" << endl;
 	if(leftRightDir.retVal()==HIGH){
 		leftRightCount++;
 	}else{
@@ -339,6 +350,7 @@ void openclose_sense_callback(int fd, short event, void *arg)
 
 void leftright_calib_callback(int fd, short event, void *arg)
 {
+	cout << "calib edge!" << endl;
 	int pinVal = leftRightCalib.get();
 	if(leftRightDir.retVal()==HIGH){
 		if(pinVal==0) leftRightCount=LEFTRIGHT_OFFSET;
@@ -391,20 +403,20 @@ void balltracker_callback(int fd, short event, void *arg)
 	//return ball position every 200ms
 	cout << "Updating ball position..." <<endl;
 	vector<int> pos(3,0);	//{x,y,radius};
-	balltracker::balltracker tracker = *(balltracker::balltracker *)arg;
-	cv::VideoCapture capture = tracker.retCapture();
+	//balltracker::balltracker tracker = *(balltracker::balltracker *)arg;
+	//cv::VideoCapture capture = tracker.retCapture();
 	
 	pos = tracker.processFrame(capture, false); //PASS TRUE/FALSE AS 2ND ARG TO DISPLAY IMG IN WINDOW
 	float W = (float)tracker.retWidth();
 	float H =(float)tracker.retHeight();
-	cout << "W = " << W << endl;
-	cout << "H = " << H << endl;
+	//cout << "W = " << W << endl;
+	//cout << "H = " << H << endl;
 	cout << "pos = <" <<pos[0]<<", "<<pos[1]<<", "<<pos[2]<<">"<< endl;
 
 
 	//DETECTED OBJECT OFFSETS FROM CENTER NORMALISED TO FRAME DIMENSIONS
 	float x_offset = ((pos[0] - (W/2))/W)*2;
-	cout << "x_offset = " << x_offset << endl;
+	//cout << "x_offset = " << x_offset << endl;
 	float y_offset = ((pos[1] - (H/2))/H)*2;
 	
 	if(x_offset<0)
@@ -414,13 +426,52 @@ void balltracker_callback(int fd, short event, void *arg)
 	}else{
 		leftRightDir.set(HIGH);
 	}
-	if(x_offset<0.10)
+	if(x_offset<0.05)
 	{
 		leftRightSpeed.Duty(0);
 	}else{
+		x_offset=x_offset+0.15;
+		if(x_offset>1)x_offset=1;
 		leftRightSpeed.Duty(x_offset*PERIOD);
 	}
-	
+
+	if(y_offset<0)
+	{
+		shoulderDir.set(LOW);
+		elbowDir.set(LOW);
+		wristDir.set(LOW);
+		y_offset=abs(y_offset);
+	}else{
+		shoulderDir.set(HIGH);
+		elbowDir.set(HIGH);
+		wristDir.set(HIGH);
+	}
+	if(y_offset<0.05)
+	{
+		shoulderSpeed.Duty(0);
+		elbowSpeed.Duty(0);
+		wristSpeed.Duty(0);
+	}else{
+		y_offset=y_offset+0.15;
+		if(y_offset>1)y_offset=1;
+		
+		if(y_offset<0.3){
+			//drive 1 motor
+			if((wristCount<WRIST_MAX)||(wristCount>WRIST_MIN)){
+				wristSpeed.Duty(y_offset);
+			} else if((elbowCount<ELBOW_MAX)||(elbowCount>ELBOW_MIN)){
+				elbowSpeed.Duty(y_offset);
+			} else if((shoulderCount<SHOULDER_MAX)||(shoulderCount>SHOULDER_MIN)){
+				shoulderSpeed.Duty(y_offset);
+			}
+
+		} else if (Y_offset<0.6){
+			//drive 2 motors
+		} else {
+			//drive all 3
+		}
+	}
+
 }
 
 /*
@@ -510,5 +561,12 @@ void pinInit()
 	leftRightSpeed.Duty(0);
 	leftRightSpeed.Polarity(0);
 	leftRightSpeed.Run();
+
+}
+
+void exit_handler(int s){
+	printf("Caught signal %d\n",s);
+        event_base_free(base);   
+	exit(1); 
 
 }

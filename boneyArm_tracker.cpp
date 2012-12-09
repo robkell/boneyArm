@@ -100,6 +100,43 @@ enum pin{
 	P9_41, P9_42, P9_43, P9_44, P9_45,
 	P9_46
 };
+class Count  {
+
+    private:
+        int MyCount
+        int Max
+        int Min
+
+    public:
+        Count(int min, int max)  {
+        	MyCounter = 0;
+		Max = max;
+		Min = min;
+        }
+        void setCount(int value)  {
+            MyCount = value;
+        }
+	int operator++(){
+		MyCount++;
+		return MyCount;
+	}
+	int operator--(){
+		MyCount--;
+		return MyCount;
+	}
+        int GetCount()  {
+            return (MyCount);
+        }
+	bool Check(){
+		return ( (MyCount<Max) && (MyCount>Min) );
+	}
+}
+Count leftRightCount(LEFTRIGHT_MIN, LEFTRIGHT_MAX);
+Count shoulderCount(SHOULDER_MIN, SHOULDER_MAX);
+Count elbowCount(ELBOW_MIN, ELBOW_MAX);
+Count wristCount(WRIST_MIN, WRIST_MAX);
+Count openCloseCount(OPENCLOSE_MIN, OPENCLOSE_MAX);
+
 /*****************DEFINE DIRECTION GPIOS***************/
 gpio::gpio openCloseDir(P8_22);
 gpio::gpio wristDir(P8_23);
@@ -153,7 +190,6 @@ float myRound(float r);
 
 long unsigned timeGlobal;
 TimerUtilObj timerObj;
-int leftRightCount=0, shoulderCount=0, elbowCount=0, wristCount=0, openCloseCount=0;
 
 int main(int ac, char** av)
 {
@@ -457,18 +493,31 @@ void balltracker_callback(int fd, short event, void *arg)
 		
 		if(y_offset<0.3){
 			//drive 1 motor
-			if((wristCount<WRIST_MAX)||(wristCount>WRIST_MIN)){
+			if(wristCount.check()){
 				wristSpeed.Duty(y_offset);
-			} else if((elbowCount<ELBOW_MAX)||(elbowCount>ELBOW_MIN)){
+			} else if(elbowCount.check()){
 				elbowSpeed.Duty(y_offset);
-			} else if((shoulderCount<SHOULDER_MAX)||(shoulderCount>SHOULDER_MIN)){
+			} else if(shoulderCount.check()){
 				shoulderSpeed.Duty(y_offset);
 			}
 
 		} else if (Y_offset<0.6){
 			//drive 2 motors
+			if(wristCount.check() && elbowCount.check()){
+				wristSpeed.Duty(y_offset);
+				elbowSpeed.Duty(y_offset);
+			} else if(wristCount.check() && shoulderCount.check()){
+				wristSpeed.Duty(y_offset);
+				shoulderSpeed.Duty(y_offset);
+			} else if(shoulderCount.check() && elbowCount.check()){
+				elbowSpeed.Duty(y_offset);
+				shoulderSpeed.Duty(y_offset);
+			}
 		} else {
 			//drive all 3
+			if(wristCount.check()) wristSpeed.Duty(y_offset);
+			if(elbowCount.check()) elbowSpeed.Duty(y_offset);
+			if(shoulderCount.check()) shoulderSpeed.Duty(y_offset);
 		}
 	}
 
